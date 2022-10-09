@@ -6,9 +6,9 @@ defmodule Cache do
           | {:error, :timeout}
           | {:error, :not_registered}
 
-  @impl GenServer
-  def start_link(opts \\ []) do
-  end
+  @process_registered_name __MODULE__
+
+  # Client API
 
   @doc ~s"""
   Registers a function that will be computed periodically to update the cache.
@@ -59,6 +59,12 @@ defmodule Cache do
   """
   @spec get(any(), non_neg_integer(), Keyword.t()) :: result
   def get(key, timeout \\ 30_000, opts \\ []) when is_integer(timeout) and timeout > 0 do
+  end
+
+  # Implementation
+  @impl GenServer
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts, name: @process_registered_name)
   end
 end
 
