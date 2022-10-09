@@ -39,6 +39,10 @@ defmodule Cache do
       when is_function(fun, 0) and is_integer(ttl) and ttl > 0 and
              is_integer(refresh_interval) and
              refresh_interval < ttl do
+    GenServer.call(
+      @process_registered_name,
+      {:register_function, {key, fun, ttl, refresh_interval}}
+    )
   end
 
   @doc ~s"""
@@ -59,12 +63,40 @@ defmodule Cache do
   """
   @spec get(any(), non_neg_integer(), Keyword.t()) :: result
   def get(key, timeout \\ 30_000, opts \\ []) when is_integer(timeout) and timeout > 0 do
+    GenServer.call(@process_registered_name, {:get, {key, timeout, opts}})
   end
 
   # Implementation
   @impl GenServer
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: @process_registered_name)
+  end
+
+  @imp GenServer
+  def init(_opts) do
+    {:ok, %{functions: %{}}}
+  end
+
+  @impl GenServer
+  def handle_call(
+        {:register_function, {key, fun, ttl, refresh_interval}},
+        _from,
+        %{functions: functions} = state
+      ) do
+    case Map.get(functions, key) do
+      nil ->
+        new_functions =
+          Map.put(functions, key, %{function: fun, ttl: ttl, refresh_interval: refresh_interval})
+
+        {:reply, :ok, %{state | functions: new_functions}}
+
+      _ ->
+        {:reply, {:error, :already_registered}, state}
+    end
+  end
+
+  @impl GenServer
+  def handle_call({:get, {key, timeout, _opts}}, _from, state) do
   end
 end
 
