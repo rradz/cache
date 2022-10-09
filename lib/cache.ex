@@ -86,7 +86,27 @@ defmodule Cache do
     case Map.get(functions, key) do
       nil ->
         new_functions =
-          Map.put(functions, key, %{function: fun, ttl: ttl, refresh_interval: refresh_interval})
+          Map.put(functions, key, %{
+            function: fun,
+            ttl: ttl,
+            refresh_interval: refresh_interval,
+            last_value: :undefined
+          })
+
+        pid = self()
+
+        Process.spawn(
+          fn ->
+            case fun.() do
+              {:ok, result} ->
+                send(pid, {:update, {key, result}})
+
+              _ ->
+                nil
+            end
+          end,
+          [:link]
+        )
 
         {:reply, :ok, %{state | functions: new_functions}}
 
@@ -96,7 +116,20 @@ defmodule Cache do
   end
 
   @impl GenServer
-  def handle_call({:get, {key, timeout, _opts}}, _from, state) do
+  def handle_call({:get, {key, timeout, _opts}}, _from, %{functions: functions} = state) do
+    case Map.get(functions, key) do
+      nil -> {:reply, {:error, :not_registered}, state}
+      %{last_value: :undefined} -> {:noreply, state}
+      %{last_value: value} -> {:reply, {:ok, value}, state}
+    end
+  end
+
+  @impl GenServer
+  def handle_info({:update, {key, value}}, %{functions: functions} = state) do
+    new_functions =
+      Map.update(functions, key, %{}, fn old_record -> %{old_record | last_value: value} end)
+
+    {:noreply, %{state | functions: new_functions}}
   end
 end
 

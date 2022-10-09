@@ -63,12 +63,15 @@ defmodule CacheTest do
     end
 
     test "gives the last value when function is recomputed" do
+      assert false
     end
 
     test "waits for timeout when result unavailable" do
+      assert false
     end
 
     test "results in error if timeout is reached" do
+      assert false
     end
   end
 end
