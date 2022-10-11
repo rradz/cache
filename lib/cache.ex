@@ -134,9 +134,17 @@ defmodule Cache do
 end
 
 defmodule Cache.Store do
+  use GenServer
+
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
+  end
+
   def store(store, key, value, ttl) do
+    GenServer.cast(store, {:store, {key, value, ttl}})
   end
 
   def get(store, key) do
+    GenServer.call(store, {:get, key})
   end
 end
