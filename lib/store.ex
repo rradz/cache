@@ -1,4 +1,4 @@
-  defmodule Store do
+  defmodule Cache.Store do
     @moduledoc """
     Module for storing function values until ttl is exceeded.
     """
@@ -24,8 +24,8 @@
     end
 
     def handle_cast({:store, {key, value, ttl}}, state) do
-      now = DateTime.utc_now() |> DateTime.to_unix()
-      new_state = Map.put(state, key, %{value: value, timestamp: now})
+      timestamp = DateTime.utc_now() |> DateTime.to_unix()
+      new_state = Map.put(state, key, %{value: value, timestamp: timestamp})
 
       Process.send_after(self(), {:expire, {key, timestamp}}, ttl)
 
@@ -47,7 +47,7 @@
     def handle_call({:get, key}, _from, state) do
       case Map.get(state, key) do
         %{value: value} -> {:reply, {:ok, value}, state}
-        _ -> {:reply, nil, state}
+        _ -> {:reply, :no_value, state}
       end
     end
   end

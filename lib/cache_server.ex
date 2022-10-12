@@ -10,7 +10,7 @@ defmodule Cache.Server do
   end
 
   def init(_opts) do
-    pid = Cache.Store.start_link()
+    {:ok, pid} = Cache.Store.start_link()
     {:ok, %{store: pid, function_map: %{}}}
   end
 
@@ -93,10 +93,12 @@ defmodule Cache.Server do
   def handle_info({:delayed_get, {key, from}}, %{store: store} = state) do
     case Cache.Store.get(store, key) do
       {:ok, value} ->
-        send(from, {:ok, value})
+        GenServer.reply(from, {:ok, value})
 
       _ ->
-        send(from, {:error, :timeout})
+        GenServer.reply(from, {:error, :timeout})
     end
+
+    {:noreply, state}
   end
 end
