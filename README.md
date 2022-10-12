@@ -1,21 +1,10 @@
 # Cache
+Solution to [task](https://github.com/eqlabs/recruitment-exercises/tree/master/cache),
+providing simple self-rehydrating cache for 0-arity functions.
 
-**TODO: Add description**
-
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `cache` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:cache, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/cache>.
+## Remarks
+1. I decided to extract implementation of `Cache` into `Cache.Server`. I did not want to change provided API, but it didn't accept genserver pid's as parameters. While it is common to do it for global genservers, it makes testing painful, as you have to deal with global state. Instead, I created an application module to start a named instance, which is called by Cache module.
+2. Both `Cache.Server` and `Cache.Store` have their own tests, reasonably comprehensively checking the desired functionality.
+3. Since I guessed the inteded usecase is global instance, I made sure main genserver loop is not locking. Function calculation happens in other process and I use `Process.send_after/3`to handle waiting for timeouts and alike.
+4. I tried to use descriptive variable and function names, but possibly you have higher standards of documentation. In team setting I adjust to agreed standards, but for a task I find it a bit pointless.
 
