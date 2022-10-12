@@ -37,41 +37,6 @@ defmodule Cache.Server do
     end
   end
 
-  def handle_info(
-        {:recalculate_function, {key, ttl, refresh_interval}},
-        %{function_map: function_map} = state
-      ) do
-    %{function: fun} = Map.get(function_map, key)
-    server_pid = self()
-
-    Process.spawn(
-      fn ->
-        case fun.() do
-          {:ok, value} ->
-            send(server_pid, {:update_function_value, {key, value, ttl}})
-
-          _ ->
-            nil
-        end
-      end,
-      [:link]
-    )
-
-    Process.send_after(
-      server_pid,
-      {:recalculate_function, {key, ttl, refresh_interval}},
-      refresh_interval
-    )
-
-    {:noreply, state}
-  end
-
-  def handle_info({:update_function_value, {key, value, ttl}}, %{store: store} = state) do
-    Cache.Store.store(store, key, value, ttl)
-
-    {:noreply, state}
-  end
-
   def handle_call(
         {:get, {key, timeout, _opts}},
         from,
@@ -85,9 +50,49 @@ defmodule Cache.Server do
         {:reply, {:error, :not_registered}, state}
 
       :no_value ->
+        # If function is registered, but not calculated yet, we wait until
+        # the end of timeout and retry.
         Process.send_after(self(), {:delayed_get, {key, from}}, timeout)
         {:noreply, state}
     end
+  end
+
+  def handle_info(
+        {:recalculate_function, {key, ttl, refresh_interval}},
+        %{function_map: function_map} = state
+      ) do
+    %{function: fun} = Map.get(function_map, key)
+    server_pid = self()
+
+    # We let the function calculate in other process, so we do not block
+    # in genserver main loop
+    Process.spawn(
+      fn ->
+        case fun.() do
+          {:ok, value} ->
+            send(server_pid, {:update_function_value, {key, value, ttl}})
+
+          _ ->
+            nil
+        end
+      end,
+      [:link]
+    )
+
+    # We ensure refresh in the proper interval
+    Process.send_after(
+      server_pid,
+      {:recalculate_function, {key, ttl, refresh_interval}},
+      refresh_interval
+    )
+
+    {:noreply, state}
+  end
+
+  def handle_info({:update_function_value, {key, value, ttl}}, %{store: store} = state) do
+    Cache.Store.store(store, key, value, ttl)
+
+    {:noreply, state}
   end
 
   def handle_info({:delayed_get, {key, from}}, %{store: store} = state) do

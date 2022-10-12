@@ -99,7 +99,7 @@ defmodule Cache.ServerTest do
 
       assert {:ok, 0} = GenServer.call(server, {:get, {"changing", 2000, []}})
       Process.sleep(200)
-      {:ok, 0} = GenServer.call(server, {:get, {"changing", 2000, []}})
+      assert {:ok, 0} = GenServer.call(server, {:get, {"changing", 2000, []}})
     end
 
     test "waits for timeout when result unavailable", %{server: server} do
