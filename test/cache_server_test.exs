@@ -15,7 +15,7 @@ defmodule Cache.ServerTest do
     def init(_), do: {:ok, 0}
 
     def handle_call(:get, _from, state) do
-      if state > 0, do: Process.sleep(5_000)
+      if state > 0, do: Process.sleep(60_000)
       {:reply, {:ok, state}, state + 1}
     end
   end
@@ -87,19 +87,19 @@ defmodule Cache.ServerTest do
     end
 
     test "gives the last value when function is recomputed", %{server: server} do
+      # Dummy GenServer takes 60 sec to update. We set up long ttl and short
+      # refresh rate to see that it uses old value when calculating the new one.
       start_supervised(DummyGenServer)
 
       :ok =
         GenServer.call(
           server,
-          {:register_function, {"changing", &DummyFunctions.changing/0, 10_000, 100}}
+          {:register_function, {"changing", &DummyFunctions.changing/0, 60_000, 100}}
         )
 
-      {:ok, x} = GenServer.call(server, {:get, {"changing", 2000, []}})
+      assert {:ok, 0} = GenServer.call(server, {:get, {"changing", 2000, []}})
       Process.sleep(200)
-      {:ok, y} = GenServer.call(server, {:get, {"changing", 2000, []}})
-
-      assert x == y
+      {:ok, 0} = GenServer.call(server, {:get, {"changing", 2000, []}})
     end
 
     test "waits for timeout when result unavailable", %{server: server} do
