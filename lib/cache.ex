@@ -7,6 +7,13 @@ defmodule Cache do
   @process_registered_name __MODULE__
 
   @doc ~s"""
+  Process name using which cache gen_server will be registered. This allows for supporting API
+  without pid.
+  """
+  @spec process_name() :: :atom
+  def process_name, do: @process_registered_name
+
+  @doc ~s"""
   Registers a function that will be computed periodically to update the cache.
 
   Arguments:
