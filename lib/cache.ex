@@ -66,6 +66,6 @@ defmodule Cache do
   """
   @spec get(any(), non_neg_integer(), Keyword.t()) :: result
   def get(key, timeout \\ 30_000, opts \\ []) when is_integer(timeout) and timeout > 0 do
-    GenServer.call(@process_registered_name, {:get, {key, timeout, opts}})
+    GenServer.call(@process_registered_name, {:get, {key, timeout, opts}}, timeout + 1_000)
   end
 end

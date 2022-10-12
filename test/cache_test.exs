@@ -10,7 +10,8 @@ defmodule CacheTest do
 
   test "gets value" do
     :ok = Cache.register_function(fn -> {:ok, 42} end, "test", 1_000, 500)
-
+    # Let calculation propagate, so we don't need to wait 30 sec.
+    Process.sleep(1)
     assert {:ok, 42} = Cache.get("test")
   end
 end
