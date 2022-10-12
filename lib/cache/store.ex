@@ -24,7 +24,7 @@
     end
 
     def handle_cast({:store, {key, value, ttl}}, state) do
-      timestamp = DateTime.utc_now() |> DateTime.to_unix()
+      timestamp = System.os_time(:millisecond)
       new_state = Map.put(state, key, %{value: value, timestamp: timestamp})
 
       Process.send_after(self(), {:expire, {key, timestamp}}, ttl)

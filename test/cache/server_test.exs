@@ -1,6 +1,5 @@
 defmodule Cache.ServerTest do
   use ExUnit.Case, async: true
-  doctest Cache
 
   # Necessary for testing for changing values
   defmodule DummyGenServer do
